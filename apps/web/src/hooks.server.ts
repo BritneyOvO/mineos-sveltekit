@@ -1,5 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { LOCALE_COOKIE, resolveLocale } from '$lib/i18n/locale';
 import { isFormContentType, isTrustedOrigin } from '$lib/server/originCheck';
 import { renderOriginErrorPage } from '$lib/server/originErrorPage';
 import { stripPreloadHeader } from '$lib/server/preloadHeader';
@@ -41,5 +42,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Dropped because the preload header does not fit a default reverse-proxy
 	// buffer; see preloadHeader.ts for what that broke.
-	return stripPreloadHeader(await resolve(event));
+	const lang = resolveLocale(
+		event.cookies.get(LOCALE_COOKIE),
+		request.headers.get('accept-language')
+	);
+	return stripPreloadHeader(
+		await resolve(event, {
+			transformPageChunk: ({ html }) =>
+				html.includes('%mineos.lang%') ? html.replaceAll('%mineos.lang%', lang) : html
+		})
+	);
 };

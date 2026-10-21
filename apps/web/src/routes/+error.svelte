@@ -1,51 +1,31 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { t, type MessageKey } from '$lib/i18n';
 
 	const statusCode = $derived($page.status || 500);
 	const detail = $derived($page.error?.message ?? '');
 
-	const titles: Record<number, string> = {
-		400: 'Bad request',
-		401: 'Sign in required',
-		403: 'Access denied',
-		404: 'Not found',
-		409: 'Conflict',
-		429: 'Too many requests',
-		500: 'Server error',
-		502: 'Upstream error',
-		503: 'Service unavailable',
-		504: 'Gateway timeout'
-	};
+	const knownCodes = [400, 401, 403, 404, 409, 429, 500, 502, 503, 504] as const;
 
-	const descriptions: Record<number, string> = {
-		400: 'That request did not look right from here.',
-		401: 'You need to authenticate before continuing.',
-		403: 'You do not have permission to view this area.',
-		404: 'We could not find that page or resource.',
-		409: 'Something already exists with that name.',
-		429: 'You are doing that a bit too quickly.',
-		500: 'The server hit an unexpected problem.',
-		502: 'The service upstream did not respond correctly.',
-		503: 'The service is taking a break right now.',
-		504: 'That request took too long to complete.'
-	};
+	function errorKey(code: number, field: 'title' | 'description' | 'hint'): MessageKey | null {
+		if (!knownCodes.includes(code as (typeof knownCodes)[number])) return null;
+		return `errors.${code}.${field}` as MessageKey;
+	}
 
-	const hints: Record<number, string> = {
-		400: 'Check the form values and try again.',
-		401: 'Sign in and retry the action.',
-		403: 'Ask an admin to grant access.',
-		404: 'Double-check the URL or go back to the dashboard.',
-		409: 'Pick a different name and try again.',
-		429: 'Wait a moment and try again.',
-		500: 'Check logs or try again soon.',
-		502: 'Try again in a moment.',
-		503: 'Try again after a short wait.',
-		504: 'Retry or check the server status.'
-	};
-
-	const title = $derived(titles[statusCode] ?? (statusCode >= 500 ? 'Server trouble' : 'Request failed'));
-	const description = $derived(descriptions[statusCode] ?? (statusCode >= 500 ? 'Something went wrong on our side.' : 'We could not complete that request.'));
-	const hint = $derived(hints[statusCode] ?? 'Go back and try again.');
+	const title = $derived.by(() => {
+		const key = errorKey(statusCode, 'title');
+		if (key) return $t(key);
+		return statusCode >= 500 ? $t('errors.serverTrouble') : $t('errors.requestFailed');
+	});
+	const description = $derived.by(() => {
+		const key = errorKey(statusCode, 'description');
+		if (key) return $t(key);
+		return statusCode >= 500 ? $t('errors.serverTroubleDescription') : $t('errors.requestFailedDescription');
+	});
+	const hint = $derived.by(() => {
+		const key = errorKey(statusCode, 'hint');
+		return key ? $t(key) : $t('errors.fallbackHint');
+	});
 </script>
 
 <svelte:head>
@@ -54,7 +34,7 @@
 
 <div class="failwhale-page">
 	<div class="copy">
-		<div class="eyebrow">ERROR {statusCode}</div>
+		<div class="eyebrow">{$t('errors.eyebrow', { code: statusCode })}</div>
 		<h1>{title}</h1>
 		<p class="description">{description}</p>
 		<p class="hint">{hint}</p>
@@ -62,15 +42,15 @@
 			<p class="detail">{detail}</p>
 		{/if}
 		<div class="actions">
-			<a class="btn-primary" href="/">Go to dashboard</a>
+			<a class="btn-primary" href="/">{$t('errors.goDashboard')}</a>
 			<button class="btn-secondary" type="button" onclick={() => history.back()}>
-				Go back
+				{$t('errors.goBack')}
 			</button>
 		</div>
 	</div>
 
 	<div class="failwhale">
-		<img src="/minecraft_failwhale.png" alt="Minecraft failwhale resting on a tiny island." />
+		<img src="/minecraft_failwhale.png" alt={$t('errors.failwhaleAlt')} />
 		<div class="sign-code" aria-hidden="true">{statusCode}</div>
 	</div>
 </div>

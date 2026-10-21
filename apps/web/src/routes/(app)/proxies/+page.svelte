@@ -8,6 +8,7 @@
 	import { loadProxyOverviews, overlaySummaries, type ProxyOverview } from '$lib/utils/proxy';
 	import { attachServerToProxy, detachServerFromProxy } from '$lib/utils/proxyAttach';
 	import { createEventStream, type EventStreamHandle } from '$lib/utils/eventStream';
+	import { t } from '$lib/i18n';
 	import { modal } from '$lib/stores/modal';
 	import ProxyBackendRollup from '$lib/components/ProxyBackendRollup.svelte';
 	import CopyButton from '$lib/components/CopyButton.svelte';
@@ -230,20 +231,16 @@
 </script>
 
 <svelte:head>
-	<title>Proxies | MineOS</title>
+	<title>{$t('proxies.pageTitle')}</title>
 </svelte:head>
 
 <div class="page">
 	<header class="header">
 		<div>
-			<h1>Proxies</h1>
-			<p class="subtitle">
-				Your proxies and the game servers behind them. Players join a proxy's address and hop
-				between its servers — together, that's your network. Open one to reach its console,
-				logs, files and plugins.
-			</p>
+			<h1>{$t('proxies.title')}</h1>
+			<p class="subtitle">{$t('proxies.subtitle')}</p>
 		</div>
-		<a class="btn-setup" href="/servers/new?type=proxy">+ Set up a proxy</a>
+		<a class="btn-setup" href="/servers/new?type=proxy">{$t('proxies.setup')}</a>
 	</header>
 
 	{#if data.proxies.length === 0}

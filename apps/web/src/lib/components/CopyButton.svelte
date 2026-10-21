@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n';
 	import { modal } from '$lib/stores/modal';
 
 	type Variant = 'solid' | 'ghost';
@@ -6,7 +7,7 @@
 
 	let {
 		value,
-		title = 'Copy',
+		title,
 		ariaLabel,
 		variant = 'solid',
 		size = 'md',
@@ -22,6 +23,7 @@
 		showErrors?: boolean;
 	} = $props();
 
+	const buttonTitle = $derived(title ?? $t('common.copy'));
 	let copied = $state(false);
 	let resetTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -55,11 +57,11 @@
 				if (success) {
 					setCopied();
 				} else if (showErrors) {
-					await modal.error('Failed to copy to clipboard');
+					await modal.error($t('common.copyFailed'));
 				}
 			} catch (fallbackErr) {
 				if (showErrors) {
-					await modal.error('Failed to copy to clipboard');
+					await modal.error($t('common.copyFailed'));
 				}
 			}
 		}
@@ -70,8 +72,8 @@
 	type="button"
 	class={`copy-button ${variant} ${size} ${className}`.trim()}
 	onclick={copyValue}
-	title={title}
-	aria-label={ariaLabel ?? title}
+	title={buttonTitle}
+	aria-label={ariaLabel ?? buttonTitle}
 	disabled={!value}
 >
 	{#if copied}

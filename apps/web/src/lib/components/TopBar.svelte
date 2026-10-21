@@ -6,6 +6,7 @@
 	import NetherPortalButton from './NetherPortalButton.svelte';
 	import type { Profile, ServerSummary, ServerDetail } from '$lib/api/types';
 	import * as api from '$lib/api/client';
+	import { t } from '$lib/i18n';
 
 	let {
 		user,
@@ -29,7 +30,8 @@
 	let recentProfileIds = $state<string[]>([]);
 	let actionBusy = $state<string | null>(null);
 	let mineosVersion = $state<string | null>(null);
-	let searchPlaceholder = $state('Search servers, profiles...');
+	let narrowSearch = $state(false);
+	const searchPlaceholder = $derived(narrowSearch ? $t('topbar.searchShort') : $t('topbar.search'));
 
 	const minQueryLength = 2;
 	const maxResults = 8;
@@ -69,7 +71,7 @@
 
 		const narrowQuery = window.matchMedia('(max-width: 480px)');
 		const updatePlaceholder = () => {
-			searchPlaceholder = narrowQuery.matches ? 'Search...' : 'Search servers, profiles...';
+			narrowSearch = narrowQuery.matches;
 		};
 		updatePlaceholder();
 		narrowQuery.addEventListener('change', updatePlaceholder);
@@ -135,7 +137,7 @@
 			key: `server:${server.name}`,
 			type: 'server',
 			label: server.displayName || server.name,
-			meta: isRunning ? 'RUNNING' : 'STOPPED',
+			meta: isRunning ? $t('status.running') : $t('status.stopped'),
 			href: `/servers/${encodeURIComponent(server.name)}`,
 			server
 		};
@@ -348,7 +350,7 @@
 
 <div class="topbar">
 	{#if onToggleSidebar}
-		<button class="hamburger-btn" onclick={onToggleSidebar} aria-label="Toggle navigation menu">
+		<button class="hamburger-btn" onclick={onToggleSidebar} aria-label={$t('topbar.toggleNav')}>
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
 				<line x1="3" y1="6" x2="21" y2="6" />
 				<line x1="3" y1="12" x2="21" y2="12" />
@@ -375,8 +377,8 @@
 		</span>
 
 		{#if showResults}
-			<div class="search-results" role="listbox" aria-label="Search results">
-				<div class="search-filters" role="tablist" aria-label="Search filters">
+			<div class="search-results" role="listbox" aria-label={$t('topbar.results')}>
+				<div class="search-filters" role="tablist" aria-label={$t('topbar.filters')}>
 					<button
 						class="filter-btn"
 						class:active={activeFilter === 'all'}
@@ -384,7 +386,7 @@
 							activeFilter = 'all';
 						}}
 					>
-						All
+						{$t('topbar.all')}
 					</button>
 					<button
 						class="filter-btn"
@@ -393,7 +395,7 @@
 							activeFilter = 'servers';
 						}}
 					>
-						Servers
+						{$t('topbar.servers')}
 					</button>
 					<button
 						class="filter-btn"
@@ -402,14 +404,14 @@
 							activeFilter = 'profiles';
 						}}
 					>
-						Profiles
+						{$t('topbar.profiles')}
 					</button>
 				</div>
 
 				{#if showRecent}
 					{#if recentQueries.length > 0}
 						<div class="results-section">
-							<div class="section-header">Recent searches</div>
+							<div class="section-header">{$t('topbar.recentSearches')}</div>
 							<div class="recent-queries">
 								{#each recentQueries as term}
 									<button class="recent-chip" onclick={() => handleRecentQueryClick(term)}>
@@ -420,17 +422,17 @@
 						</div>
 					{/if}
 					{#if !hasRecentResults}
-						<div class="no-results">Start typing to search</div>
+						<div class="no-results">{$t('topbar.startTyping')}</div>
 					{/if}
 				{:else}
 					{#if !hasSearchResults}
-						<div class="no-results">No results found</div>
+						<div class="no-results">{$t('topbar.noResults')}</div>
 					{/if}
 				{/if}
 
 				{#if visibleServers.length > 0}
 					<div class="results-section">
-						<div class="section-header">{showRecent ? 'Recent servers' : 'Servers'}</div>
+						<div class="section-header">{showRecent ? $t('topbar.recentServers') : $t('topbar.servers')}</div>
 						{#each visibleServers as result}
 							<div
 								class="result-item"
@@ -460,14 +462,14 @@
 												onclick={(e) => handleServerAction(e, result.server!, 'restart')}
 												disabled={isActionBusy(result.server!, 'restart')}
 											>
-												Restart
+												{$t('common.restart')}
 											</button>
 											<button
 												class="result-action danger"
 												onclick={(e) => handleServerAction(e, result.server!, 'stop')}
 												disabled={isActionBusy(result.server!, 'stop')}
 											>
-												Stop
+												{$t('common.stop')}
 											</button>
 										{:else}
 											<button
@@ -475,7 +477,7 @@
 												onclick={(e) => handleServerAction(e, result.server!, 'start')}
 												disabled={isActionBusy(result.server!, 'start')}
 											>
-												Start
+												{$t('common.start')}
 											</button>
 										{/if}
 									</div>
@@ -487,7 +489,7 @@
 
 				{#if visibleProfiles.length > 0}
 					<div class="results-section">
-						<div class="section-header">{showRecent ? 'Recent profiles' : 'Profiles'}</div>
+						<div class="section-header">{showRecent ? $t('topbar.recentProfiles') : $t('topbar.profiles')}</div>
 						{#each visibleProfiles as result}
 							<div
 								class="result-item"
@@ -531,7 +533,7 @@
 					/>
 				</svg>
 			</span>
-			<span class="username">{user?.username || 'Unknown'}</span>
+			<span class="username">{user?.username || $t('topbar.unknownUser')}</span>
 		</a>
 	</div>
 </div>

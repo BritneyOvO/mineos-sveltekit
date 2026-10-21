@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import LanguageSelect from '$lib/components/LanguageSelect.svelte';
+	import { t, type MessageKey } from '$lib/i18n';
 	import { modal } from '$lib/stores/modal';
 	import { sheepEnabled } from '$lib/stores/uiPreferences';
 	import type { PageData } from './$types';
@@ -58,6 +60,25 @@
 		return setting.displayName || setting.key;
 	}
 
+	const groupKeys: Record<string, MessageKey> = {
+		General: 'settings.group.general',
+		Integrations: 'settings.group.integrations',
+		Notifications: 'settings.group.notifications',
+		Advanced: 'settings.group.advanced'
+	};
+
+	function groupLabel(name: string): string {
+		const key = groupKeys[name];
+		return key ? $t(key) : name;
+	}
+
+	function sourceLabel(source: string): string {
+		if (source === 'database') return $t('settings.source.database');
+		if (source === 'configuration') return $t('settings.source.configuration');
+		if (source === 'not set') return $t('settings.source.unset');
+		return source;
+	}
+
 	function startEdit(setting: SettingInfo) {
 		editingKey = setting.key;
 		editValue = '';
@@ -79,8 +100,8 @@
 			});
 
 			if (!res.ok) {
-				const error = await res.json().catch(() => ({ error: 'Failed to save setting' }));
-				await modal.error(error.error || 'Failed to save setting');
+				const error = await res.json().catch(() => ({ error: $t('settings.saveFailed') }));
+				await modal.error(error.error || $t('settings.saveFailed'));
 			} else {
 				cancelEdit();
 				await invalidateAll();
@@ -91,10 +112,7 @@
 	}
 
 	async function clearSetting(key: string) {
-		const confirmed = await modal.confirm(
-			'Are you sure you want to clear this setting? It will fall back to the configuration file value if one exists.',
-			'Clear Setting'
-		);
+		const confirmed = await modal.confirm($t('settings.clearConfirm'), $t('settings.clearTitle'));
 		if (!confirmed) return;
 
 		saving = true;
@@ -106,8 +124,8 @@
 			});
 
 			if (!res.ok) {
-				const error = await res.json().catch(() => ({ error: 'Failed to clear setting' }));
-				await modal.error(error.error || 'Failed to clear setting');
+				const error = await res.json().catch(() => ({ error: $t('settings.clearFailed') }));
+				await modal.error(error.error || $t('settings.clearFailed'));
 			} else {
 				await invalidateAll();
 			}
@@ -170,8 +188,8 @@
 
 <div class="page-header">
 	<div>
-		<h1>Settings</h1>
-		<p class="subtitle">Configure system settings and integrations</p>
+		<h1>{$t('settings.title')}</h1>
+		<p class="subtitle">{$t('settings.subtitle')}</p>
 	</div>
 </div>
 
@@ -179,17 +197,26 @@
 <div class="settings-group">
 	<div class="group-header">
 		<span class="group-icon">🎨</span>
-		<h2>UI Preferences</h2>
-		<span class="source-badge source-config">local</span>
+		<h2>{$t('settings.uiPreferences')}</h2>
+		<span class="source-badge source-config">{$t('settings.local')}</span>
 	</div>
 	<div class="setting-card">
 		<div class="preference-row">
 			<div>
-				<div class="preference-title">Minecraft Sheep Pet</div>
-				<div class="preference-help">Show the sheep companion on every page.</div>
+				<div class="preference-title">{$t('settings.language')}</div>
+				<div class="preference-help">{$t('settings.languageHelp')}</div>
+			</div>
+			<LanguageSelect id="settings-language" />
+		</div>
+	</div>
+	<div class="setting-card">
+		<div class="preference-row">
+			<div>
+				<div class="preference-title">{$t('settings.sheepTitle')}</div>
+				<div class="preference-help">{$t('settings.sheepHelp')}</div>
 			</div>
 			<label class="toggle">
-				<input type="checkbox" bind:checked={$sheepEnabled} aria-label="Toggle sheep pet" />
+				<input type="checkbox" bind:checked={$sheepEnabled} aria-label={$t('settings.sheepToggle')} />
 				<span class="toggle-slider"></span>
 			</label>
 		</div>
@@ -205,7 +232,7 @@
 		<div class="settings-group">
 			<div class="group-header">
 				<span class="group-icon">{getGroupIcon(group.name)}</span>
-				<h2>{group.name}</h2>
+				<h2>{groupLabel(group.name)}</h2>
 			</div>
 
 			{#each group.settings as setting (setting.key)}
@@ -216,7 +243,7 @@
 							<div class="setting-info">
 								<div class="setting-title-row">
 									<div class="preference-title">{displayName(setting)}</div>
-									<span class="coming-soon-badge">Coming Soon</span>
+									<span class="coming-soon-badge">{$t('settings.comingSoon')}</span>
 								</div>
 								<div class="preference-help">{setting.description}</div>
 							</div>
@@ -229,7 +256,7 @@
 								<div class="setting-title-row">
 									<div class="preference-title">{displayName(setting)}</div>
 									<span class="source-badge {getSourceBadgeClass(setting.source)}"
-										>{setting.source}</span
+										>{sourceLabel(setting.source)}</span
 									>
 								</div>
 								<div class="preference-help">{setting.description}</div>
@@ -252,7 +279,7 @@
 							<div class="setting-title-row">
 								<div class="preference-title">{displayName(setting)}</div>
 								<span class="source-badge {getSourceBadgeClass(setting.source)}"
-									>{setting.source}</span
+									>{sourceLabel(setting.source)}</span
 								>
 							</div>
 							<div class="preference-help">{setting.description}</div>
@@ -279,23 +306,23 @@
 										if (e.key === 'Enter') saveNumber(setting);
 									}}
 								/>
-								<span class="number-unit">sec</span>
+								<span class="number-unit">{$t('settings.sec')}</span>
 							</div>
 							<button
 								class="btn-sm"
 								onclick={() => saveNumber(setting)}
 								disabled={saving}
 							>
-								{saving ? '...' : 'Save'}
+								{saving ? '...' : $t('common.save')}
 							</button>
 						</div>
 						{#if setting.source === 'database'}
 							<button
 								class="btn-clear"
 								onclick={() => clearSetting(setting.key)}
-								title="Clear database value and fall back to config"
+								title={$t('settings.resetTitle')}
 							>
-								Reset to default
+								{$t('settings.resetDefault')}
 							</button>
 						{/if}
 
@@ -305,7 +332,7 @@
 							<div class="setting-title-row">
 								<div class="preference-title">{displayName(setting)}</div>
 								<span class="source-badge {getSourceBadgeClass(setting.source)}"
-									>{setting.source}</span
+									>{sourceLabel(setting.source)}</span
 								>
 							</div>
 							<div class="preference-help">{setting.description}</div>
@@ -318,7 +345,7 @@
 								aria-label={displayName(setting)}
 							>
 								{#if !setting.hasValue}
-									<option value="" disabled>Select...</option>
+									<option value="" disabled>{$t('settings.select')}</option>
 								{/if}
 								{#each parseOptions(setting.options) as opt (opt)}
 									<option value={opt}>{opt}</option>
@@ -328,9 +355,9 @@
 								<button
 									class="btn-clear"
 									onclick={() => clearSetting(setting.key)}
-									title="Clear database value and fall back to config"
+									title={$t('settings.resetTitle')}
 								>
-									Reset
+									{$t('settings.reset')}
 								</button>
 							{/if}
 						</div>
@@ -341,13 +368,13 @@
 							<div class="setting-info">
 								<div class="setting-title-row">
 									<div class="preference-title">{displayName(setting)}</div>
-									<span class="edit-badge">Editing</span>
+									<span class="edit-badge">{$t('settings.editing')}</span>
 								</div>
 								<div class="preference-help">{setting.description}</div>
 							</div>
 							<label class="input-label">
-								<span class="label-text">New value (will be stored securely)</span>
-								<input type="password" bind:value={editValue} placeholder="Enter new value" />
+								<span class="label-text">{$t('settings.newSecret')}</span>
+								<input type="password" bind:value={editValue} placeholder={$t('settings.enterNewValue')} />
 							</label>
 							<div class="edit-actions">
 								<button
@@ -355,10 +382,10 @@
 									onclick={() => saveSetting(setting.key)}
 									disabled={saving || !editValue.trim()}
 								>
-									{saving ? 'Saving...' : 'Save'}
+									{saving ? $t('common.saving') : $t('common.save')}
 								</button>
 								<button class="btn-secondary" onclick={cancelEdit} disabled={saving}>
-									Cancel
+									{$t('common.cancel')}
 								</button>
 							</div>
 						{:else}
@@ -367,26 +394,26 @@
 									<div class="setting-title-row">
 										<div class="preference-title">{displayName(setting)}</div>
 										<span class="source-badge {getSourceBadgeClass(setting.source)}"
-											>{setting.source}</span
+											>{sourceLabel(setting.source)}</span
 										>
 									</div>
 									<div class="preference-help">{setting.description}</div>
 									{#if setting.hasValue}
 										<code class="setting-value-code">{setting.value}</code>
 									{:else}
-										<span class="not-configured">Not configured</span>
+										<span class="not-configured">{$t('settings.notConfigured')}</span>
 									{/if}
 								</div>
 								<div class="setting-actions-vertical">
 									<button class="btn-primary" onclick={() => startEdit(setting)}>
-										{setting.hasValue ? 'Update' : 'Configure'}
+										{setting.hasValue ? $t('settings.update') : $t('settings.configure')}
 									</button>
 									{#if setting.source === 'database'}
 										<button
 											class="btn-clear"
 											onclick={() => clearSetting(setting.key)}
 										>
-											Clear
+											{$t('settings.clear')}
 										</button>
 									{/if}
 								</div>
@@ -399,13 +426,13 @@
 							<div class="setting-info">
 								<div class="setting-title-row">
 									<div class="preference-title">{displayName(setting)}</div>
-									<span class="edit-badge">Editing</span>
+									<span class="edit-badge">{$t('settings.editing')}</span>
 								</div>
 								<div class="preference-help">{setting.description}</div>
 							</div>
 							<label class="input-label">
-								<span class="label-text">New value</span>
-								<input type="text" bind:value={editValue} placeholder="Enter value" />
+								<span class="label-text">{$t('settings.newValue')}</span>
+								<input type="text" bind:value={editValue} placeholder={$t('settings.enterValue')} />
 							</label>
 							<div class="edit-actions">
 								<button
@@ -413,10 +440,10 @@
 									onclick={() => saveSetting(setting.key)}
 									disabled={saving || !editValue.trim()}
 								>
-									{saving ? 'Saving...' : 'Save'}
+									{saving ? $t('common.saving') : $t('common.save')}
 								</button>
 								<button class="btn-secondary" onclick={cancelEdit} disabled={saving}>
-									Cancel
+									{$t('common.cancel')}
 								</button>
 							</div>
 						{:else}
@@ -425,26 +452,26 @@
 									<div class="setting-title-row">
 										<div class="preference-title">{displayName(setting)}</div>
 										<span class="source-badge {getSourceBadgeClass(setting.source)}"
-											>{setting.source}</span
+											>{sourceLabel(setting.source)}</span
 										>
 									</div>
 									<div class="preference-help">{setting.description}</div>
 									{#if setting.hasValue}
 										<code class="setting-value-code">{setting.value}</code>
 									{:else}
-										<span class="not-configured">Not configured</span>
+										<span class="not-configured">{$t('settings.notConfigured')}</span>
 									{/if}
 								</div>
 								<div class="setting-actions-vertical">
 									<button class="btn-primary" onclick={() => startEdit(setting)}>
-										{setting.hasValue ? 'Update' : 'Configure'}
+										{setting.hasValue ? $t('settings.update') : $t('settings.configure')}
 									</button>
 									{#if setting.source === 'database'}
 										<button
 											class="btn-clear"
 											onclick={() => clearSetting(setting.key)}
 										>
-											Clear
+											{$t('settings.clear')}
 										</button>
 									{/if}
 								</div>
@@ -461,26 +488,26 @@
 	<div class="settings-group">
 		<div class="group-header">
 			<span class="group-icon">ℹ</span>
-			<h2>System</h2>
+			<h2>{$t('settings.system')}</h2>
 		</div>
 		<div class="setting-card">
 			<div class="preference-row">
 				<div class="setting-info">
-					<div class="preference-title">Installation ID</div>
-					<div class="preference-help">Unique identifier for this MineOS installation. Used for telemetry and support.</div>
+					<div class="preference-title">{$t('settings.installationId')}</div>
+					<div class="preference-help">{$t('settings.installationHelp')}</div>
 					{#if data.meta.installationId}
 						<code class="setting-value-code installation-id">{data.meta.installationId}</code>
 					{:else}
-						<span class="not-configured">Not set</span>
+						<span class="not-configured">{$t('settings.notSet')}</span>
 					{/if}
 				</div>
 				{#if data.meta.installationId}
 					<button
 						class="btn-sm"
 						onclick={() => navigator.clipboard.writeText(data.meta.installationId)}
-						title="Copy to clipboard"
+						title={$t('settings.copyClipboard')}
 					>
-						Copy
+						{$t('common.copy')}
 					</button>
 				{/if}
 			</div>
@@ -490,40 +517,38 @@
 
 <div class="info-section">
 	<div class="info-card">
-		<h3>Setting Sources</h3>
+		<h3>{$t('settings.sourcesTitle')}</h3>
 		<ul>
 			<li>
-				<span class="source-badge source-database">database</span>
-				Value stored in the database (takes priority)
+				<span class="source-badge source-database">{$t('settings.source.database')}</span>
+				{$t('settings.sourceDatabaseHelp')}
 			</li>
 			<li>
-				<span class="source-badge source-config">configuration</span>
-				Value from environment variables or config file
+				<span class="source-badge source-config">{$t('settings.source.configuration')}</span>
+				{$t('settings.sourceConfigHelp')}
 			</li>
 			<li>
-				<span class="source-badge source-not-set">not set</span>
-				No value configured
+				<span class="source-badge source-not-set">{$t('settings.source.unset')}</span>
+				{$t('settings.sourceUnsetHelp')}
 			</li>
 		</ul>
 	</div>
 
 	<div class="info-card">
-		<h3>Getting a CurseForge API Key</h3>
+		<h3>{$t('settings.curseforgeTitle')}</h3>
 		<ol>
 			<li>
-				Visit <a href="https://console.curseforge.com/" target="_blank" rel="noopener noreferrer"
+				{$t('settings.curseforgeVisit')}
+				<a href="https://console.curseforge.com/" target="_blank" rel="noopener noreferrer"
 					>console.curseforge.com</a
 				>
 			</li>
-			<li>Sign in or create an account</li>
-			<li>Go to "API Keys" in your account settings</li>
-			<li>Create a new API key</li>
-			<li>Copy the key and paste it above</li>
+			<li>{$t('settings.curseforgeSignIn')}</li>
+			<li>{$t('settings.curseforgeApiKeys')}</li>
+			<li>{$t('settings.curseforgeCreate')}</li>
+			<li>{$t('settings.curseforgeCopy')}</li>
 		</ol>
-		<p class="note">
-			The CurseForge API key is required for searching and downloading mods and modpacks. The site
-			works without it for vanilla server management.
-		</p>
+		<p class="note">{$t('settings.curseforgeNote')}</p>
 	</div>
 </div>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n';
 	import { theme } from '$lib/stores/uiPreferences';
 
 	const version = import.meta.env.PUBLIC_BUILD_ID ?? 'dev';
@@ -15,8 +16,8 @@
 
 <div class="about-page">
 	<header class="page-header">
-		<h1>About MineOS</h1>
-		<p class="subtitle">Modern Minecraft Server Management</p>
+		<h1>{$t('about.title')}</h1>
+		<p class="subtitle">{$t('about.subtitle')}</p>
 	</header>
 
 	<div class="hero-section">

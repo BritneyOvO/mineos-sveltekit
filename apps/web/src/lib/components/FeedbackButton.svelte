@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$lib/i18n';
+
 	let isOpen = $state(false);
 
 	const repoUrl = 'https://github.com/freeman412/mineos-sveltekit';
@@ -19,15 +21,15 @@
 		<div class="feedback-menu">
 			<button class="feedback-option" onclick={() => handleClick('bug')}>
 				<span class="option-icon">🐛</span>
-				<span class="option-text">Report a Bug</span>
+				<span class="option-text">{$t('feedback.bug')}</span>
 			</button>
 			<button class="feedback-option" onclick={() => handleClick('feature')}>
 				<span class="option-icon">💡</span>
-				<span class="option-text">Request Feature</span>
+				<span class="option-text">{$t('feedback.feature')}</span>
 			</button>
 			<button class="feedback-option" onclick={() => handleClick('question')}>
 				<span class="option-icon">❓</span>
-				<span class="option-text">Ask a Question</span>
+				<span class="option-text">{$t('feedback.question')}</span>
 			</button>
 		</div>
 	{/if}
@@ -36,7 +38,7 @@
 		class="feedback-button"
 		class:open={isOpen}
 		onclick={() => (isOpen = !isOpen)}
-		title="Send Feedback"
+		title={$t('feedback.send')}
 	>
 		{#if isOpen}
 			<svg viewBox="0 0 24 24" width="24" height="24">

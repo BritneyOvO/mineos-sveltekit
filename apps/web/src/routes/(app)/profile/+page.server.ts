@@ -7,7 +7,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 	if (!response.ok) {
 		return {
 			user: null,
-			error: 'Unable to load profile details.'
+			error: 'load_failed'
 		};
 	}
 
@@ -26,11 +26,11 @@ export const actions = {
 		const confirmPassword = data.get('confirmPassword')?.toString();
 
 		if (!username) {
-			return fail(400, { error: 'Username is required.' });
+			return fail(400, { error: 'username_required' });
 		}
 
 		if (password && password !== confirmPassword) {
-			return fail(400, { error: 'Passwords do not match.' });
+			return fail(400, { error: 'password_mismatch' });
 		}
 
 		const payload: { username?: string; password?: string } = { username };
@@ -45,8 +45,8 @@ export const actions = {
 		});
 
 		if (!response.ok) {
-			const error = await response.json().catch(() => ({ error: 'Failed to update profile.' }));
-			return fail(response.status, { error: error.error || 'Failed to update profile.' });
+			const error = await response.json().catch(() => ({ error: 'update_failed' }));
+			return fail(response.status, { error: error.error || 'update_failed' });
 		}
 
 		const updated = await response.json();

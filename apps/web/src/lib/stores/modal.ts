@@ -1,4 +1,5 @@
 import { writable, get } from 'svelte/store';
+import { translate } from '$lib/i18n';
 
 export type ModalType = 'alert' | 'confirm' | 'error' | 'success';
 
@@ -29,14 +30,14 @@ function createModalActions() {
 		modalStore.set(defaultState);
 	}
 
-	function alert(message: string, title = 'Notice'): Promise<void> {
+	function alert(message: string, title = translate('modal.notice')): Promise<void> {
 		return new Promise((resolve) => {
 			modalStore.set({
 				isOpen: true,
 				type: 'alert',
 				title,
 				message,
-				confirmText: 'OK',
+				confirmText: translate('common.ok'),
 				onConfirm: () => {
 					close();
 					resolve();
@@ -45,14 +46,14 @@ function createModalActions() {
 		});
 	}
 
-	function error(message: string, title = 'Error'): Promise<void> {
+	function error(message: string, title = translate('modal.error')): Promise<void> {
 		return new Promise((resolve) => {
 			modalStore.set({
 				isOpen: true,
 				type: 'error',
 				title,
 				message,
-				confirmText: 'OK',
+				confirmText: translate('common.ok'),
 				onConfirm: () => {
 					close();
 					resolve();
@@ -61,14 +62,14 @@ function createModalActions() {
 		});
 	}
 
-	function success(message: string, title = 'Success'): Promise<void> {
+	function success(message: string, title = translate('modal.success')): Promise<void> {
 		return new Promise((resolve) => {
 			modalStore.set({
 				isOpen: true,
 				type: 'success',
 				title,
 				message,
-				confirmText: 'OK',
+				confirmText: translate('common.ok'),
 				onConfirm: () => {
 					close();
 					resolve();
@@ -77,15 +78,15 @@ function createModalActions() {
 		});
 	}
 
-	function confirm(message: string, title = 'Confirm'): Promise<boolean> {
+	function confirm(message: string, title = translate('modal.confirm')): Promise<boolean> {
 		return new Promise((resolve) => {
 			modalStore.set({
 				isOpen: true,
 				type: 'confirm',
 				title,
 				message,
-				confirmText: 'Confirm',
-				cancelText: 'Cancel',
+				confirmText: translate('common.confirm'),
+				cancelText: translate('common.cancel'),
 				onConfirm: () => {
 					close();
 					resolve(true);

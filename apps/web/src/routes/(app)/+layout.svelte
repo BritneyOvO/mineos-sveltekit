@@ -6,6 +6,7 @@
 	import FeedbackButton from '$lib/components/FeedbackButton.svelte';
 	import MinecraftSheepPet from '$lib/components/MinecraftSheepPet.svelte';
 	import { sheepEnabled, theme } from '$lib/stores/uiPreferences';
+	import { t } from '$lib/i18n';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
 	let sidebarOpen = $state(false);
@@ -35,15 +36,15 @@
 		'/favicon.svg'
 	);
 
-	const navItems = [
-		{ href: '/dashboard', label: 'Dashboard', icon: '[D]' },
-		{ href: '/servers', label: 'Servers', icon: '[S]' },
-		{ href: '/proxies', label: 'Proxies', icon: '[X]' },
-		{ href: '/profiles', label: 'Profiles', icon: '[P]' },
-		{ href: '/admin/access', label: 'Users', icon: '[U]', requiresAdmin: true },
-		{ href: '/admin/settings', label: 'Settings', icon: '[G]', requiresAdmin: true },
-		{ href: '/admin/shell', label: 'Admin Shell', icon: '[T]', requiresAdmin: true }
-	];
+	const navItems = $derived([
+		{ href: '/dashboard', label: $t('nav.dashboard'), icon: '[D]' },
+		{ href: '/servers', label: $t('nav.servers'), icon: '[S]' },
+		{ href: '/proxies', label: $t('nav.proxies'), icon: '[X]' },
+		{ href: '/profiles', label: $t('nav.profiles'), icon: '[P]' },
+		{ href: '/admin/access', label: $t('nav.users'), icon: '[U]', requiresAdmin: true },
+		{ href: '/admin/settings', label: $t('nav.settings'), icon: '[G]', requiresAdmin: true },
+		{ href: '/admin/shell', label: $t('nav.adminShell'), icon: '[T]', requiresAdmin: true }
+	]);
 
 	function isVisible(item: (typeof navItems)[number]) {
 		if (item.requiresAdmin && data.user?.role !== 'admin') return false;
@@ -111,14 +112,14 @@
 	{/if}
 	<nav class="sidebar" class:open={sidebarOpen}>
 		<div class="sidebar-header">
-			<a href="/dashboard" class="logo-wrap logo-link" aria-label="Go to dashboard">
-				<img src={logoSrc} alt="MineOS logo" class="logo-icon" />
+			<a href="/dashboard" class="logo-wrap logo-link" aria-label={$t('nav.goToDashboard')}>
+				<img src={logoSrc} alt={$t('nav.logoAlt')} class="logo-icon" />
 				<div>
 					<div class="logo-title">
 						<h1 class="logo">MineOS</h1>
-						<span class="beta-tag">Beta</span>
+						<span class="beta-tag">{$t('nav.beta')}</span>
 					</div>
-					<p class="logo-tagline">Minecraft Control</p>
+					<p class="logo-tagline">{$t('nav.tagline')}</p>
 				</div>
 			</a>
 		</div>
@@ -137,7 +138,7 @@
 	<div class="sidebar-footer">
 		<a href="/about" class="footer-link">
 			<span class="icon">[?]</span>
-			<span>About</span>
+			<span>{$t('nav.about')}</span>
 		</a>
 		<a
 			class="coffee-btn"
@@ -146,12 +147,12 @@
 			rel="noreferrer"
 		>
 			<span class="icon">[☕]</span>
-			<span>Buy Me a Coffee</span>
+			<span>{$t('nav.buyCoffee')}</span>
 		</a>
 		<form action="/logout" method="POST" style="display: contents;">
 			<button type="submit" class="logout-btn">
 				<span class="icon">[X]</span>
-				<span>Logout</span>
+				<span>{$t('nav.logout')}</span>
 			</button>
 		</form>
 	</div>

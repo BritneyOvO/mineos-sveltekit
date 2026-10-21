@@ -2,6 +2,9 @@
  * Shared formatting utilities for consistent display across the app.
  */
 
+import { currentLocale, translate } from '$lib/i18n';
+import { intlLocale } from '$lib/i18n/locale';
+
 const SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
 
 /**
@@ -40,7 +43,7 @@ export function formatDate(dateStr: string | Date | null | undefined): string {
 	if (!dateStr) return '';
 	const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
 	if (isNaN(date.getTime())) return '';
-	return date.toLocaleString();
+	return date.toLocaleString(intlLocale(currentLocale()));
 }
 
 /**
@@ -52,7 +55,7 @@ export function formatDateOnly(dateStr: string | Date | null | undefined): strin
 	if (!dateStr) return '';
 	const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
 	if (isNaN(date.getTime())) return '';
-	return date.toLocaleDateString();
+	return date.toLocaleDateString(intlLocale(currentLocale()));
 }
 
 /**
@@ -72,11 +75,13 @@ export function formatRelativeTime(dateStr: string | Date | null | undefined): s
 	const diffHours = Math.floor(diffMins / 60);
 	const diffDays = Math.floor(diffHours / 24);
 
-	if (diffSecs < 60) return 'Just now';
-	if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-	if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-	if (diffDays === 1) return 'Yesterday';
-	if (diffDays < 7) return `${diffDays} days ago`;
+	if (diffSecs < 60) return translate('time.justNow');
+	if (diffMins === 1) return translate('time.minuteAgo');
+	if (diffMins < 60) return translate('time.minutesAgo', { n: diffMins });
+	if (diffHours === 1) return translate('time.hourAgo');
+	if (diffHours < 24) return translate('time.hoursAgo', { n: diffHours });
+	if (diffDays === 1) return translate('time.yesterday');
+	if (diffDays < 7) return translate('time.daysAgo', { n: diffDays });
 
 	return formatDateOnly(date);
 }
@@ -110,7 +115,7 @@ export function formatUptime(seconds: number | null | undefined): string {
  */
 export function formatNumber(num: number | null | undefined): string {
 	if (num == null) return '0';
-	return num.toLocaleString();
+	return num.toLocaleString(intlLocale(currentLocale()));
 }
 
 /**

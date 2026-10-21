@@ -1,9 +1,25 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import LanguageSelect from '$lib/components/LanguageSelect.svelte';
+	import { t, type MessageKey } from '$lib/i18n';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
 	let loading = $state(false);
+
+	const loginErrors: Record<string, MessageKey> = {
+		required: 'login.errorRequired',
+		invalid: 'login.errorInvalid',
+		failed: 'login.errorFailed',
+		unexpected: 'login.errorUnexpected'
+	};
+
+	const errorText = $derived.by(() => {
+		const code = form?.error;
+		if (!code) return '';
+		const key = loginErrors[code];
+		return key ? $t(key) : code;
+	});
 </script>
 
 <svelte:head>
@@ -23,13 +39,18 @@
 	<div class="login-box">
 		<div class="header">
 			<div class="logo-wrap">
-				<img src="/mineos-logo.svg" alt="MineOS logo" class="logo-icon" />
+				<img src="/mineos-logo.svg" alt={$t('nav.logoAlt')} class="logo-icon" />
 				<div>
 					<h1>MineOS</h1>
-					<p class="tagline">Minecraft Control</p>
+					<p class="tagline">{$t('nav.tagline')}</p>
 				</div>
 			</div>
-			<p class="subtitle">Sign in to manage your servers</p>
+			<p class="subtitle">{$t('login.subtitle')}</p>
+		</div>
+
+		<div class="lang-row">
+			<label for="login-language">{$t('login.language')}</label>
+			<LanguageSelect id="login-language" />
 		</div>
 
 		<form
@@ -43,7 +64,7 @@
 			}}
 		>
 			<div class="field">
-				<label for="username">Username</label>
+				<label for="username">{$t('login.username')}</label>
 				<input
 					type="text"
 					id="username"
@@ -55,7 +76,7 @@
 			</div>
 
 			<div class="field">
-				<label for="password">Password</label>
+				<label for="password">{$t('login.password')}</label>
 				<input
 					type="password"
 					id="password"
@@ -66,12 +87,12 @@
 				/>
 			</div>
 
-			{#if form?.error}
-				<div class="error">{form.error}</div>
+			{#if errorText}
+				<div class="error">{errorText}</div>
 			{/if}
 
 			<button type="submit" disabled={loading}>
-				{loading ? 'Signing in...' : 'Sign in'}
+				{loading ? $t('login.signingIn') : $t('login.signIn')}
 			</button>
 		</form>
 	</div>
@@ -141,6 +162,16 @@
 
 	.subtitle {
 		margin: 0;
+		color: #aab2d3;
+		font-size: 14px;
+	}
+
+	.lang-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 20px;
 		color: #aab2d3;
 		font-size: 14px;
 	}

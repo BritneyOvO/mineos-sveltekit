@@ -4,6 +4,7 @@
 	import { env } from '$env/dynamic/public';
 	import { browser } from '$app/environment';
 	import * as api from '$lib/api/client';
+	import { t, type MessageKey } from '$lib/i18n';
 	import { modal } from '$lib/stores/modal';
 	import { formatBytes, formatDate } from '$lib/utils/formatting';
 	import { createEventStream, type EventStreamHandle } from '$lib/utils/eventStream';
@@ -54,6 +55,17 @@
 	let jobsInterval: ReturnType<typeof setInterval> | null = null;
 	const IMPORT_JOBS_STORAGE_KEY = 'mineos-import-jobs';
 	const IMPORTED_SERVERS_STORAGE_KEY = 'mineos-imported-servers';
+
+	function jobStatusLabel(status: string): string {
+		const keys: Record<string, MessageKey> = {
+			queued: 'servers.statusQueued',
+			running: 'servers.statusRunning',
+			completed: 'servers.statusCompleted',
+			failed: 'servers.statusFailed'
+		};
+		const key = keys[status];
+		return key ? $t(key) : status;
+	}
 
 	// Track which archives have been imported and to which server name
 	let importedServers = $state<Record<string, string>>({});
@@ -217,7 +229,15 @@
 			}
 
 			if (result.error) {
-				await modal.error(`Failed to ${action} server: ${result.error}`);
+				const actionKey: Record<typeof action, MessageKey> = {
+					start: 'common.start',
+					stop: 'common.stop',
+					restart: 'common.restart',
+					kill: 'common.kill'
+				};
+				await modal.error(
+					$t('servers.actionFailed', { action: $t(actionKey[action]), error: result.error })
+				);
 			} else {
 				// Wait a bit for the action to complete, then refresh
 				setTimeout(() => invalidateAll(), 1000);
@@ -244,14 +264,17 @@
 		event?.stopPropagation();
 		event?.preventDefault();
 
-		const confirmed = await modal.confirm(`Are you sure you want to delete server "${serverName}"?`, 'Delete Server');
+		const confirmed = await modal.confirm(
+			$t('servers.deleteConfirm', { name: serverName }),
+			$t('servers.deleteTitle')
+		);
 		if (!confirmed) return;
 
 		actionLoading[serverName] = true;
 		try {
 			const result = await api.deleteServer(fetch, serverName);
 			if (result.error) {
-				await modal.error(`Failed to delete server: ${result.error}`);
+				await modal.error($t('servers.deleteFailed', { error: result.error }));
 			} else {
 				await invalidateAll();
 			}
@@ -281,7 +304,7 @@
 					return;
 				}
 
-				let message = 'Upload failed';
+				let message = $t('servers.uploadFailed');
 				try {
 					const parsed = JSON.parse(xhr.responseText || '{}');
 					message = parsed.error || message;
@@ -293,7 +316,7 @@
 				reject(new Error(message));
 			};
 
-			xhr.onerror = () => reject(new Error('Upload failed'));
+			xhr.onerror = () => reject(new Error($t('servers.uploadFailed')));
 			xhr.send(file);
 		});
 	}
@@ -307,17 +330,19 @@
 			for (let i = 0; i < list.length; i += 1) {
 				const file = list[i];
 				uploadFileName = file.name;
-				uploadStatus = `Uploading ${i + 1} of ${list.length}`;
+				uploadStatus = $t('servers.uploadingProgress', { current: i + 1, total: list.length });
 				uploadProgress = 0;
 				await uploadArchive(file);
 			}
 			await modal.success(
-				`Uploaded ${list.length} archive${list.length === 1 ? '' : 's'}.`,
-				'Upload complete'
+				list.length === 1
+					? $t('servers.uploadComplete', { count: list.length })
+					: $t('servers.uploadCompletePlural', { count: list.length }),
+				$t('servers.uploadCompleteTitle')
 			);
 			await invalidateAll();
 		} catch (err) {
-			uploadError = err instanceof Error ? err.message : 'Upload failed';
+			uploadError = err instanceof Error ? err.message : $t('servers.uploadFailed');
 		} finally {
 			uploadBusy = false;
 			dragActive = false;
@@ -377,20 +402,29 @@
 								const conflicts = await checkPortConflicts(serverName);
 								if (conflicts.length > 0) {
 									await modal.alert(
-										`Import complete, but there are port conflicts:\n\n${conflicts.join('\n')}\n\nYou may need to change the server-port in server.properties.`,
-										'Port Conflict Warning'
+										$t('servers.portConflict', { conflicts: conflicts.join('\n') }),
+										$t('servers.portConflictTitle')
 									);
 								} else {
-									await modal.success(`Server "${serverName}" imported successfully from "${filename}".`, 'Import complete');
+									await modal.success(
+										$t('servers.importSuccess', { name: serverName, filename }),
+										$t('servers.importCompleteTitle')
+									);
 								}
 								void invalidateAll();
 							}, 500);
 						} else {
-							void modal.success(`Import for "${filename}" finished.`, 'Import complete');
+							void modal.success(
+								$t('servers.importFinished', { filename }),
+								$t('servers.importCompleteTitle')
+							);
 							void invalidateAll();
 						}
 					} else {
-						void modal.error(`Import for "${filename}" failed.`, 'Import failed');
+						void modal.error(
+							$t('servers.importFailed', { filename }),
+							$t('servers.importFailedTitle')
+						);
 					}
 				}
 			} catch {
@@ -407,7 +441,7 @@
 	async function handleCreateImport(filename: string) {
 		const serverName = (serverNames[filename] || '').trim();
 		if (!serverName) {
-			await modal.alert('Server name is required', 'Required Field');
+			await modal.alert($t('servers.nameRequired'), $t('servers.nameRequiredTitle'));
 			return;
 		}
 
@@ -423,8 +457,8 @@
 			);
 
 			if (!res.ok) {
-				const error = await res.json().catch(() => ({ error: 'Failed to import server' }));
-				await modal.error(error.error || 'Failed to import server');
+				const error = await res.json().catch(() => ({ error: $t('servers.importServerFailed') }));
+				await modal.error(error.error || $t('servers.importServerFailed'));
 			} else {
 				const result = await res.json();
 				const jobId = result.jobId as string | undefined;
@@ -434,8 +468,8 @@
 					pendingImportNames = { ...pendingImportNames };
 					startImportJob(filename, jobId);
 					await modal.alert(
-						`Import for "${filename}" queued. You can keep working while it unpacks.`,
-						'Import started'
+						$t('servers.importQueued', { filename }),
+						$t('servers.importStartedTitle')
 					);
 				}
 				serverNames[filename] = '';
@@ -449,8 +483,8 @@
 
 	async function handleDeleteImport(filename: string) {
 		const confirmed = await modal.confirm(
-			`Delete import file "${filename}"?`,
-			'Delete Import'
+			$t('servers.deleteImportConfirm', { filename }),
+			$t('servers.deleteImportTitle')
 		);
 		if (!confirmed) return;
 
@@ -461,8 +495,8 @@
 			});
 
 			if (!res.ok) {
-				const error = await res.json().catch(() => ({ error: 'Failed to delete import' }));
-				await modal.error(error.error || 'Failed to delete import');
+				const error = await res.json().catch(() => ({ error: $t('servers.deleteImportFailed') }));
+				await modal.error(error.error || $t('servers.deleteImportFailed'));
 			} else {
 				imports = imports.filter((i) => i.filename !== filename);
 			}
@@ -538,20 +572,20 @@
 
 <div class="page-header">
 	<div>
-		<h1>Servers</h1>
+		<h1>{$t('servers.title')}</h1>
 		<p class="subtitle">
-			Manage your Minecraft servers
-			<span class="port-range">Ports: {portRange}</span>
+			{$t('servers.subtitle')}
+			<span class="port-range">{$t('servers.ports', { range: portRange })}</span>
 		</p>
 	</div>
 	<a href="/servers/new" class="btn-primary">
-		<span>+</span> Create Server
+		<span>+</span> {$t('servers.create')}
 	</a>
 </div>
 
 {#if serversError}
 	<div class="error-box">
-		<p>Failed to load servers: {serversError}</p>
+		<p>{$t('servers.loadFailed', { error: serversError })}</p>
 	</div>
 {:else if visibleServers.length > 0}
 	{#snippet serverCard(server: ServerSummary)}
@@ -568,7 +602,7 @@
 				<div class="server-icon-wrapper">
 					<img
 						src="/api/servers/{server.name}/icon"
-						alt="{server.name} icon"
+						alt={$t('servers.iconAlt', { name: server.name })}
 						class="server-icon"
 						onerror={(e) => ((e.currentTarget as HTMLElement).style.display = 'none')}
 					/>
@@ -583,23 +617,23 @@
 					</div>
 				</div>
 				<StatusBadge variant={isCreating ? 'warning' : server.up ? 'success' : 'error'} size="sm">
-					{isCreating ? 'Creating' : server.up ? 'Running' : 'Stopped'}
+					{isCreating ? $t('status.creating') : server.up ? $t('status.running') : $t('status.stopped')}
 				</StatusBadge>
 			</div>
 
 			<div class="card-meta">
 				{#if isCreating}
-					<span class="badge badge-warning">Creating</span>
+					<span class="badge badge-warning">{$t('status.creating')}</span>
 				{/if}
 				{#if server.profile}
-					<span class="badge">Profile: {server.profile}</span>
+					<span class="badge">{$t('servers.profile', { name: server.profile })}</span>
 				{/if}
 				{#if server.port}
 					<span class="badge badge-muted address-badge">
 						<span>{hostname}:{server.port}</span>
 						<CopyButton
 							value={`${hostname}:${server.port}`}
-							title="Copy server address"
+							title={$t('servers.copyAddress')}
 							variant="ghost"
 							size="sm"
 							showErrors={false}
@@ -607,25 +641,25 @@
 					</span>
 				{/if}
 				{#if server.needsRestart}
-					<span class="badge badge-warning">Restart required</span>
+					<span class="badge badge-warning">{$t('servers.restartRequired')}</span>
 				{/if}
 				{#if updateBadges[server.name]}
-					<span class="badge badge-update">Update available</span>
+					<span class="badge badge-update">{$t('servers.updateAvailable')}</span>
 				{/if}
 			</div>
 			<div class="card-metrics">
 				<div class="metric">
-					<span class="metric-label">Players</span>
+					<span class="metric-label">{$t('servers.players')}</span>
 					<span class="metric-value">
 						{server.playersOnline ?? '--'} / {server.playersMax ?? '--'}
 					</span>
 				</div>
 				<div class="metric">
-					<span class="metric-label">Status</span>
-					<span class="metric-value">{isCreating ? 'Creating' : server.up ? 'Online' : 'Offline'}</span>
+					<span class="metric-label">{$t('servers.status')}</span>
+					<span class="metric-value">{isCreating ? $t('status.creating') : server.up ? $t('status.online') : $t('status.offline')}</span>
 				</div>
 				<div class="metric memory">
-					<span class="metric-label">Memory</span>
+					<span class="metric-label">{$t('servers.memory')}</span>
 					<span class="metric-value">{formatBytes(server.memoryBytes)}</span>
 					{#if memoryHistory[server.name]?.length > 1}
 						<svg class="sparkline" viewBox="0 0 120 32" preserveAspectRatio="none">
@@ -649,21 +683,21 @@
 						onclick={(event) => handleAction(server.name, 'stop', event)}
 						disabled={actionLoading[server.name] || isCreating}
 					>
-						Stop
+						{$t('common.stop')}
 					</button>
 					<button
 						class="btn-action"
 						onclick={(event) => handleAction(server.name, 'restart', event)}
 						disabled={actionLoading[server.name] || isCreating}
 					>
-						Restart
+						{$t('common.restart')}
 					</button>
 					<button
 						class="btn-action btn-danger"
 						onclick={(event) => handleAction(server.name, 'kill', event)}
 						disabled={actionLoading[server.name] || isCreating}
 					>
-						Kill
+						{$t('common.kill')}
 					</button>
 				{:else}
 					<button
@@ -671,7 +705,7 @@
 						onclick={(event) => handleAction(server.name, 'start', event)}
 						disabled={actionLoading[server.name] || isCreating}
 					>
-						Start
+						{$t('common.start')}
 					</button>
 				{/if}
 				<button
@@ -679,7 +713,7 @@
 					onclick={(event) => handleDelete(server.name, event)}
 					disabled={actionLoading[server.name] || isCreating}
 				>
-					Delete
+					{$t('common.delete')}
 				</button>
 			</div>
 		</div>
@@ -693,16 +727,16 @@
 {:else}
 	<div class="empty-state">
 		<p class="empty-icon">[]</p>
-		<h2>No game servers yet</h2>
-		<p>Create your first Minecraft server to get started</p>
-		<a href="/servers/new" class="btn-primary">Create Server</a>
+		<h2>{$t('servers.noServers')}</h2>
+		<p>{$t('servers.noServersHelp')}</p>
+		<a href="/servers/new" class="btn-primary">{$t('servers.create')}</a>
 	</div>
 {/if}
 
 <section class="import-section" id="import">
 	<div class="section-header">
-		<h2>Import Servers</h2>
-		<span class="section-subtitle">Upload archives and unpack them in the background</span>
+		<h2>{$t('servers.importTitle')}</h2>
+		<span class="section-subtitle">{$t('servers.importSubtitle')}</span>
 	</div>
 
 	<div
@@ -724,8 +758,8 @@
 		}}
 	>
 		<div>
-			<h3>Drag & drop an archive</h3>
-			<p>.zip, .tar.gz, or .tgz files supported</p>
+			<h3>{$t('servers.dropTitle')}</h3>
+			<p>{$t('servers.dropHelp')}</p>
 		</div>
 		<label class="btn-action">
 			<input
@@ -739,7 +773,7 @@
 				}}
 				hidden
 			/>
-			{uploadBusy ? 'Uploading...' : 'Choose files'}
+			{uploadBusy ? $t('servers.uploading') : $t('servers.chooseFiles')}
 		</label>
 	</div>
 
@@ -759,19 +793,19 @@
 
 	{#if importsError}
 		<div class="error-box">
-			<p>Failed to load imports: {importsError}</p>
+			<p>{$t('servers.importsFailed', { error: importsError })}</p>
 		</div>
 	{:else if imports && imports.length > 0}
 		<div class="imports-card">
 			<table>
 				<thead>
 					<tr>
-						<th>Filename</th>
-						<th>Size</th>
-						<th>Uploaded</th>
-						<th>Server Name</th>
-						<th>Unpack</th>
-						<th>Action</th>
+						<th>{$t('servers.filename')}</th>
+						<th>{$t('servers.size')}</th>
+						<th>{$t('servers.uploaded')}</th>
+						<th>{$t('servers.serverName')}</th>
+						<th>{$t('servers.unpack')}</th>
+						<th>{$t('servers.action')}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -786,10 +820,10 @@
 							<td>
 								{#if alreadyImported && !hasActiveJob}
 									<div class="imported-info">
-										<span class="imported-badge">Imported as "{alreadyImported}"</span>
+										<span class="imported-badge">{$t('servers.importedAs', { name: alreadyImported })}</span>
 										<input
 											type="text"
-											placeholder="different-name"
+											placeholder={$t('servers.differentName')}
 											value={serverNames[entry.filename] ?? ''}
 											oninput={(event) => {
 												const value = (event.currentTarget as HTMLInputElement).value;
@@ -801,7 +835,7 @@
 								{:else}
 									<input
 										type="text"
-										placeholder="new-server"
+										placeholder={$t('servers.newServer')}
 										value={serverNames[entry.filename] ?? ''}
 										oninput={(event) => {
 											const value = (event.currentTarget as HTMLInputElement).value;
@@ -820,10 +854,10 @@
 										></div>
 									</div>
 									<div class="job-meta">
-										{importJobs[entry.filename].status} {importJobs[entry.filename].percentage}%
+										{jobStatusLabel(importJobs[entry.filename].status)} {importJobs[entry.filename].percentage}%
 									</div>
 								{:else if alreadyImported}
-									<span class="imported-status">Complete</span>
+									<span class="imported-status">{$t('servers.complete')}</span>
 								{:else}
 									<span class="muted">--</span>
 								{/if}
@@ -836,18 +870,18 @@
 										disabled={importLoading[entry.filename] || hasActiveJob}
 									>
 										{#if importLoading[entry.filename]}
-											Queueing...
+											{$t('servers.queueing')}
 										{:else if alreadyImported}
-											Re-import
+											{$t('servers.reimport')}
 										{:else}
-											Import
+											{$t('servers.import')}
 										{/if}
 									</button>
 									<button
 										class="btn-delete-import"
 										onclick={() => handleDeleteImport(entry.filename)}
 										disabled={importLoading[entry.filename] || hasActiveJob}
-										title="Delete import"
+										title={$t('servers.deleteImport')}
 									>
 										🗑️
 									</button>
@@ -860,8 +894,8 @@
 		</div>
 	{:else}
 		<div class="empty-state">
-			<h3>No imports found</h3>
-			<p>Add archives to the import folder to create servers.</p>
+			<h3>{$t('servers.noImports')}</h3>
+			<p>{$t('servers.noImportsHelp')}</p>
 		</div>
 	{/if}
 </section>

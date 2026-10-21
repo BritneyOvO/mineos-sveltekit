@@ -2,6 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
+	import { t } from '$lib/i18n';
 	import { modal } from '$lib/stores/modal';
 	import type { PageData } from './$types';
 
@@ -335,19 +336,19 @@
 
 <div class="page-header">
 	<div class="header-copy">
-		<h1>Profiles</h1>
-		<p class="subtitle">Manage Minecraft server jars and BuildTools builds.</p>
+		<h1>{$t('profiles.title')}</h1>
+		<p class="subtitle">{$t('profiles.subtitle')}</p>
 		<div class="stat-row">
 			<div class="stat-chip">
-				<span class="stat-label">Total</span>
+				<span class="stat-label">{$t('profiles.total')}</span>
 				<span class="stat-value">{profiles.length}</span>
 			</div>
 			<div class="stat-chip success">
-				<span class="stat-label">Ready</span>
+				<span class="stat-label">{$t('profiles.ready')}</span>
 				<span class="stat-value">{downloadedCount}</span>
 			</div>
 			<div class="stat-chip warning">
-				<span class="stat-label">Missing</span>
+				<span class="stat-label">{$t('profiles.missing')}</span>
 				<span class="stat-value">{missingCount}</span>
 			</div>
 		</div>
@@ -361,12 +362,12 @@
 	<section class="library-panel">
 		<div class="library-toolbar">
 			<div class="search-field">
-				<label for="profile-search">Search profiles</label>
+				<label for="profile-search">{$t('profiles.searchLabel')}</label>
 				<input
 					id="profile-search"
 					type="text"
 					bind:value={searchQuery}
-					placeholder="Search profiles..."
+					placeholder={$t('profiles.searchPlaceholder')}
 				/>
 			</div>
 			<div class="toolbar-row">

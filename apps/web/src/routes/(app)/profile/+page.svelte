@@ -1,4 +1,6 @@
 <script lang="ts">
+	import LanguageSelect from '$lib/components/LanguageSelect.svelte';
+	import { t, type MessageKey } from '$lib/i18n';
 	import type { PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: { error?: string; success?: boolean } | null } =
@@ -8,12 +10,24 @@
 	let password = $state('');
 	let confirmPassword = $state('');
 
+	const profileErrors: Record<string, MessageKey> = {
+		load_failed: 'profile.loadFailed',
+		username_required: 'profile.usernameRequired',
+		password_mismatch: 'profile.passwordMismatch',
+		update_failed: 'profile.updateFailed'
+	};
+
+	function profileMessage(code: string): string {
+		const key = profileErrors[code];
+		return key ? $t(key) : code;
+	}
+
 	const statusMessage = $derived.by(() => {
 		if (form?.error) {
-			return { type: 'error', message: form.error };
+			return { type: 'error', message: profileMessage(form.error) };
 		}
 		if (form?.success) {
-			return { type: 'success', message: 'Profile updated.' };
+			return { type: 'success', message: $t('profile.updated') };
 		}
 		return null;
 	});
@@ -28,40 +42,46 @@
 
 <div class="page-header">
 	<div>
-		<h1>User Profile</h1>
-		<p class="subtitle">Update your account details and password.</p>
+		<h1>{$t('profile.title')}</h1>
+		<p class="subtitle">{$t('profile.subtitle')}</p>
 	</div>
 </div>
 
+<section class="panel language-panel">
+	<h2>{$t('profile.language')}</h2>
+	<p class="language-help">{$t('profile.languageHelp')}</p>
+	<LanguageSelect id="profile-language" />
+</section>
+
 {#if data.error}
-	<div class="alert error">{data.error}</div>
+	<div class="alert error">{profileMessage(data.error)}</div>
 {:else}
 	<form method="post" class="profile-form">
 		<section class="panel">
-			<h2>Account Info</h2>
+			<h2>{$t('profile.account')}</h2>
 			<label>
-				<span class="label-text">Username</span>
+				<span class="label-text">{$t('profile.username')}</span>
 				<input type="text" name="username" bind:value={username} required />
 			</label>
 			<label>
-				<span class="label-text">Role</span>
+				<span class="label-text">{$t('profile.role')}</span>
 				<input type="text" value={data.user?.role ?? 'user'} readonly />
 			</label>
 		</section>
 
 		<section class="panel">
-			<h2>Password</h2>
+			<h2>{$t('profile.password')}</h2>
 			<label>
-				<span class="label-text">New Password</span>
-				<input type="password" name="password" bind:value={password} placeholder="Leave blank to keep current" />
+				<span class="label-text">{$t('profile.newPassword')}</span>
+				<input type="password" name="password" bind:value={password} placeholder={$t('profile.keepCurrent')} />
 			</label>
 			<label>
-				<span class="label-text">Confirm Password</span>
-				<input type="password" name="confirmPassword" bind:value={confirmPassword} placeholder="Repeat new password" />
+				<span class="label-text">{$t('profile.confirmPassword')}</span>
+				<input type="password" name="confirmPassword" bind:value={confirmPassword} placeholder={$t('profile.repeatPassword')} />
 			</label>
 		</section>
 
-		<button class="btn-primary" type="submit">Save Changes</button>
+		<button class="btn-primary" type="submit">{$t('profile.save')}</button>
 
 		{#if statusMessage}
 			<div class="alert" class:success={statusMessage.type === 'success'} class:error={statusMessage.type === 'error'}>
@@ -95,6 +115,17 @@
 		display: grid;
 		gap: 20px;
 		max-width: 520px;
+	}
+
+	.language-panel {
+		max-width: 520px;
+		margin-bottom: 20px;
+	}
+
+	.language-help {
+		margin: -8px 0 0;
+		color: #9aa2c5;
+		font-size: 13px;
 	}
 
 	.panel {

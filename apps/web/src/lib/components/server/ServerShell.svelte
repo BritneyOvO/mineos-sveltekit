@@ -7,6 +7,7 @@
 	import ServerUpdateBadge from '$lib/components/ServerUpdateBadge.svelte';
 	import * as api from '$lib/api/client';
 	import { buildTabs, type Tab } from '$lib/utils/serverTabs';
+	import { t, type MessageKey } from '$lib/i18n';
 	import type { ServerPanelData } from './panelData';
 	import type { ServerHeartbeat } from '$lib/api/types';
 
@@ -125,11 +126,56 @@
 	}
 
 	function normalizeStatus(status?: string) {
-		if (!status) return { label: 'Unknown', running: false };
+		if (!status) return { running: false };
 		const value = status.toLowerCase();
-		if (value === 'running' || value === 'up') return { label: 'Running', running: true };
-		if (value === 'stopped' || value === 'down') return { label: 'Stopped', running: false };
-		return { label: status, running: false };
+		if (value === 'running' || value === 'up') return { running: true };
+		if (value === 'stopped' || value === 'down') return { running: false };
+		return { running: false, raw: status };
+	}
+
+	function statusLabel(status?: string) {
+		if (!status) return $t('status.unknown');
+		const value = status.toLowerCase();
+		if (value === 'running' || value === 'up') return $t('status.running');
+		if (value === 'stopped' || value === 'down') return $t('status.stopped');
+		return status;
+	}
+
+	const tabLabelKeys: Record<string, MessageKey> = {
+		Dashboard: 'tabs.dashboard',
+		Overview: 'tabs.overview',
+		Properties: 'tabs.properties',
+		Config: 'tabs.config',
+		Logs: 'tabs.logs',
+		Backups: 'tabs.backups',
+		Archives: 'tabs.archives',
+		Files: 'tabs.files',
+		Performance: 'tabs.performance',
+		Worlds: 'tabs.worlds',
+		Players: 'tabs.players',
+		Mods: 'tabs.mods',
+		Plugins: 'tabs.plugins',
+		'Cron Jobs': 'tabs.cron'
+	};
+
+	const tabTooltipKeys: Record<string, MessageKey> = {
+		'Bedrock servers do not use Java configuration': 'tabs.tooltip.bedrockConfig',
+		'Player management is not available for Bedrock servers': 'tabs.tooltip.bedrockPlayers',
+		'Bedrock servers do not support Java mods': 'tabs.tooltip.bedrockMods',
+		'Mods require a modded server (Forge, Fabric, NeoForge, or Quilt)': 'tabs.tooltip.modsRequire',
+		'Bedrock servers do not support Java plugins': 'tabs.tooltip.bedrockPlugins',
+		'Plugins require a plugin server (Paper, Spigot, Purpur, or Bukkit)': 'tabs.tooltip.pluginsRequire'
+	};
+
+	function tabLabel(tab: Tab) {
+		const key = tabLabelKeys[tab.label];
+		return key ? $t(key) : tab.label;
+	}
+
+	function tabTooltip(tab: Tab) {
+		if (!tab.tooltip) return undefined;
+		const key = tabTooltipKeys[tab.tooltip];
+		return key ? $t(key) : tab.tooltip;
 	}
 
 	const statusMeta = $derived(normalizeStatus(server?.status));
@@ -189,36 +235,36 @@
 	<div class="server-header">
 		<div class="server-info">
 			<a href={isProxy ? '/proxies' : '/servers'} class="breadcrumb">
-				&lt; Back to {isProxy ? 'Proxies' : 'Servers'}
+				&lt; {isProxy ? $t('shell.backProxies') : $t('shell.backServers')}
 			</a>
 			<div class="title-row">
 				<h1>{shownName}</h1>
-				<button class="rename-btn" onclick={openRename} aria-label="Rename server" title="Rename server">
+				<button class="rename-btn" onclick={openRename} aria-label={$t('shell.rename')} title={$t('shell.rename')}>
 					✎
 				</button>
 				<StatusBadge variant={statusMeta.running ? 'success' : 'warning'} size="lg">
-					{statusMeta.label}
+					{statusLabel(server?.status)}
 				</StatusBadge>
 				{#if isProxy}
-					<span class="proxy-chip">Proxy</span>
+					<span class="proxy-chip">{$t('shell.proxy')}</span>
 				{/if}
 				{#if server?.name}
 					<ServerUpdateBadge serverName={server.name} running={statusMeta.running} />
 				{/if}
 			</div>
 			{#if hasCustomName && server?.name}
-				<div class="backend-name">Backend name: <code>{server.name}</code></div>
+				<div class="backend-name">{$t('shell.backendName')} <code>{server.name}</code></div>
 			{/if}
 			<div class="server-meta">
 				<div class="meta-chip players">
-					<span class="chip-label">Players</span>
+					<span class="chip-label">{$t('shell.players')}</span>
 					<span class="chip-value">{playerInfo.online ?? '--'}</span>
 					<span class="chip-sep">/</span>
 					<span class="chip-value muted">{playerInfo.max ?? '--'}</span>
 				</div>
 				{#if displayVersion}
 					<div class="meta-chip">
-						<span class="chip-label">Version</span>
+						<span class="chip-label">{$t('shell.version')}</span>
 						<span class="chip-value">{displayVersion}</span>
 					</div>
 				{/if}
@@ -245,12 +291,12 @@
 	<nav class="tabs">
 		{#each tabs as tab}
 			{#if tab.disabled}
-				<span class="tab disabled" title={tab.tooltip}>
-					{tab.label}
+				<span class="tab disabled" title={tabTooltip(tab)}>
+					{tabLabel(tab)}
 				</span>
 			{:else}
 				<a href={tab.href} class="tab" class:active={isActiveTab(tab.href, tab.exact)}>
-					{tab.label}
+					{tabLabel(tab)}
 				</a>
 			{/if}
 		{/each}
@@ -270,28 +316,27 @@
 		onclick={(e) => e.target === e.currentTarget && (showRenameModal = false)}
 		role="presentation"
 	>
-		<div class="rename-modal" role="dialog" aria-modal="true" aria-label="Rename server">
-			<h2>Rename server</h2>
+		<div class="rename-modal" role="dialog" aria-modal="true" aria-label={$t('shell.renameTitle')}>
+			<h2>{$t('shell.renameTitle')}</h2>
 			<p class="rename-hint">
-				A friendly label shown in the UI. The backend name
-				<code>{server?.name}</code> never changes.
+				{$t('shell.renameHint', { name: server?.name ?? '' })}
 			</p>
 			<input
 				bind:this={renameInput}
 				bind:value={renameValue}
 				maxlength="64"
 				placeholder={server?.name}
-				aria-label="Display name"
+				aria-label={$t('shell.displayName')}
 			/>
 			{#if renameError}
 				<p class="rename-error">{renameError}</p>
 			{/if}
 			<div class="rename-actions">
 				<button class="btn-secondary" onclick={() => (showRenameModal = false)} disabled={renaming}>
-					Cancel
+					{$t('common.cancel')}
 				</button>
 				<button class="btn-primary" onclick={saveRename} disabled={renaming}>
-					{renaming ? 'Saving…' : 'Save'}
+					{renaming ? $t('shell.saving') : $t('common.save')}
 				</button>
 			</div>
 		</div>

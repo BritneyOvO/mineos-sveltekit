@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { uploads, type UploadEntry } from '$lib/stores/uploads';
 	import ProgressBar from './ProgressBar.svelte';
+	import { locale, t, type MessageKey } from '$lib/i18n';
+	import { intlLocale } from '$lib/i18n/locale';
 
 	let notifications = $state<SystemNotification[]>([]);
 	let activeJobs = $state<JobStatus[]>([]);
@@ -225,28 +227,26 @@
 		const hours = Math.floor(minutes / 60);
 		const days = Math.floor(hours / 24);
 
-		if (minutes < 1) return 'just now';
-		if (minutes < 60) return `${minutes}m ago`;
-		if (hours < 24) return `${hours}h ago`;
-		if (days < 7) return `${days}d ago`;
-		return date.toLocaleDateString();
+		if (minutes < 1) return $t('time.justNow');
+		if (minutes === 1) return $t('time.minuteAgo');
+		if (minutes < 60) return $t('time.minutesAgo', { n: minutes });
+		if (hours === 1) return $t('time.hourAgo');
+		if (hours < 24) return $t('time.hoursAgo', { n: hours });
+		if (days === 1) return $t('time.yesterday');
+		if (days < 7) return $t('time.daysAgo', { n: days });
+		return date.toLocaleDateString(intlLocale($locale));
 	}
 
 	function getJobTypeLabel(type: string): string {
-		switch (type) {
-			case 'import':
-				return 'Server Import';
-			case 'backup':
-				return 'Backup';
-			case 'restore':
-				return 'Restore';
-			case 'download':
-				return 'Download';
-			case 'buildtools':
-				return 'BuildTools';
-			default:
-				return type.charAt(0).toUpperCase() + type.slice(1);
-		}
+		const keys: Record<string, MessageKey> = {
+			import: 'notifications.job.import',
+			backup: 'notifications.job.backup',
+			restore: 'notifications.job.restore',
+			download: 'notifications.job.download',
+			buildtools: 'notifications.job.buildtools'
+		};
+		const key = keys[type];
+		return key ? $t(key) : type.charAt(0).toUpperCase() + type.slice(1);
 	}
 
 	function toggleMenu() {
@@ -268,7 +268,7 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="notification-menu">
-	<button class="notification-bell" onclick={toggleMenu} aria-label="Notifications">
+	<button class="notification-bell" onclick={toggleMenu} aria-label={$t('notifications.label')}>
 		<span class="bell-icon" aria-hidden="true">
 			<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
 				<path
@@ -299,7 +299,7 @@
 			{#if activeTaskCount > 0}
 				<div class="section-header tasks-header">
 					<span class="section-icon">[~]</span>
-					<h3>Active Tasks</h3>
+					<h3>{$t('notifications.activeTasks')}</h3>
 				</div>
 				<div class="tasks-list">
 					{#each activeJobs as job (job.jobId)}
@@ -310,11 +310,11 @@
 							</div>
 							{#if job.serverName && job.type !== 'buildtools'}
 								<a class="task-link" href={`/servers/${encodeURIComponent(job.serverName)}`}>
-									Details
+									{$t('common.details')}
 								</a>
 							{:else if job.type === 'buildtools'}
 								<a class="task-link" href="/profiles/buildtools">
-									Details
+									{$t('common.details')}
 								</a>
 							{/if}
 							<ProgressBar value={job.percentage} color="blue" size="sm" showLabel />
@@ -326,11 +326,11 @@
 					{#each activeModpacks as modpack (modpack.jobId)}
 						<div class="task-item">
 							<div class="task-info">
-								<span class="task-type">Modpack Install</span>
+								<span class="task-type">{$t('notifications.modpackInstall')}</span>
 								<span class="task-server">{modpack.serverName}</span>
 							</div>
 							<a class="task-link" href={`/servers/${encodeURIComponent(modpack.serverName)}`}>
-								Details
+								{$t('common.details')}
 							</a>
 							<ProgressBar
 								value={modpack.percentage}
@@ -352,11 +352,11 @@
 					] as install (install.installId)}
 						<div class="task-item">
 							<div class="task-info">
-								<span class="task-type">{install.loaderName} Install</span>
+								<span class="task-type">{$t('notifications.loaderInstall', { name: install.loaderName })}</span>
 								<span class="task-server">{install.serverName}</span>
 							</div>
 							<a class="task-link" href={`/servers/${encodeURIComponent(install.serverName)}`}>
-								Details
+								{$t('common.details')}
 							</a>
 							<ProgressBar value={install.progress} color="blue" size="sm" showLabel />
 							{#if install.currentStep}
@@ -367,14 +367,14 @@
 					{#each activeUploads as upload (upload.id)}
 						<div class="task-item upload-item">
 							<div class="task-info">
-								<span class="task-type">Upload</span>
+								<span class="task-type">{$t('notifications.upload')}</span>
 								<span class="task-server">{upload.filename}</span>
 							</div>
-							<ProgressBar indeterminate color="blue" size="sm" showLabel label="Uploading" />
+							<ProgressBar indeterminate color="blue" size="sm" showLabel label={$t('notifications.uploading')} />
 							<button
 								class="cancel-upload"
 								onclick={() => uploads.cancel(upload.id)}
-								title="Cancel upload"
+								title={$t('notifications.cancelUpload')}
 							>
 								X
 							</button>
@@ -384,7 +384,7 @@
 			{/if}
 
 			<div class="dropdown-header">
-				<h3>Notifications</h3>
+				<h3>{$t('notifications.label')}</h3>
 				<div class="header-actions">
 					{#if dismissedNotifications.length > 0}
 						<button
@@ -393,11 +393,11 @@
 								showDismissed = !showDismissed;
 							}}
 						>
-							{showDismissed ? 'Hide Dismissed' : 'Show Dismissed'}
+							{showDismissed ? $t('notifications.hideDismissed') : $t('notifications.showDismissed')}
 						</button>
 					{/if}
 					{#if activeNotifications.length > 0}
-						<button class="dismiss-all-btn" onclick={dismissAll}>Dismiss All</button>
+						<button class="dismiss-all-btn" onclick={dismissAll}>{$t('notifications.dismissAll')}</button>
 					{/if}
 				</div>
 			</div>
@@ -405,7 +405,7 @@
 			<div class="notification-list">
 				{#if !hasVisibleNotifications}
 					<div class="empty-state">
-						<p>No notifications</p>
+						<p>{$t('notifications.empty')}</p>
 					</div>
 				{:else}
 					{#each activeNotifications as notification (notification.id)}
@@ -439,10 +439,10 @@
 										e.stopPropagation();
 										dismiss(notification.id);
 									}}
-									title="Dismiss"
+									title={$t('notifications.dismiss')}
 									disabled={!!notification.dismissedAt}
 								>
-									Dismiss
+									{$t('notifications.dismiss')}
 								</button>
 								<button
 									class="action-btn danger"
@@ -450,15 +450,15 @@
 										e.stopPropagation();
 										deleteNotification(notification.id);
 									}}
-									title="Delete"
+									title={$t('notifications.delete')}
 								>
-									Delete
+									{$t('notifications.delete')}
 								</button>
 							</div>
 						</div>
 					{/each}
 					{#if showDismissed && dismissedNotifications.length > 0}
-						<div class="dismissed-header">Dismissed</div>
+						<div class="dismissed-header">{$t('notifications.dismissed')}</div>
 						{#each dismissedNotifications as notification (notification.id)}
 							<div class="notification-item dismissed">
 								<div class="notification-icon" style="color: {getColorForType(notification.type)}">
@@ -481,9 +481,9 @@
 											e.stopPropagation();
 											deleteNotification(notification.id);
 										}}
-										title="Delete"
+										title={$t('notifications.delete')}
 									>
-										Delete
+										{$t('notifications.delete')}
 									</button>
 								</div>
 							</div>

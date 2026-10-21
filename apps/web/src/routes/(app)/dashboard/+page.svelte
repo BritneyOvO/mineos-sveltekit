@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import * as api from '$lib/api/client';
+	import { t, type MessageKey } from '$lib/i18n';
 	import { modal } from '$lib/stores/modal';
 	import { formatBytes, formatUptime } from '$lib/utils/formatting';
 	import { createEventStream, type EventStreamHandle } from '$lib/utils/eventStream';
@@ -105,7 +106,14 @@
 			}
 
 			if (result?.error) {
-				await modal.error(`Failed to ${action} server: ${result.error}`);
+				const actionKey: Record<typeof action, MessageKey> = {
+					start: 'common.start',
+					stop: 'common.stop',
+					kill: 'common.kill'
+				};
+				await modal.error(
+					$t('dashboard.actionFailed', { action: $t(actionKey[action]), error: result.error })
+				);
 			} else {
 				setTimeout(() => invalidateAll(), 1000);
 			}
@@ -159,10 +167,10 @@
 <div class="dashboard">
 	<div class="page-header">
 		<div>
-			<h1>Dashboard</h1>
-			<p class="subtitle">Overview of your Minecraft hosting environment</p>
+			<h1>{$t('dashboard.title')}</h1>
+			<p class="subtitle">{$t('dashboard.subtitle')}</p>
 		</div>
-		<a href="/servers/new" class="btn-primary">+ Create Server</a>
+		<a href="/servers/new" class="btn-primary">{$t('dashboard.createServer')}</a>
 	</div>
 
 	<!-- Quick Stats -->
@@ -171,7 +179,7 @@
 			<div class="stat-icon">[S]</div>
 			<div class="stat-content">
 				<div class="stat-value">{totalServers}</div>
-				<div class="stat-label">Total Servers</div>
+				<div class="stat-label">{$t('dashboard.totalServers')}</div>
 			</div>
 		</div>
 
@@ -179,7 +187,7 @@
 			<div class="stat-icon">[R]</div>
 			<div class="stat-content">
 				<div class="stat-value">{runningServers}</div>
-				<div class="stat-label">Running</div>
+				<div class="stat-label">{$t('dashboard.running')}</div>
 			</div>
 		</div>
 
@@ -187,7 +195,7 @@
 			<div class="stat-icon">[P]</div>
 			<div class="stat-content">
 				<div class="stat-value">{totalPlayers} / {maxPlayers}</div>
-				<div class="stat-label">Players Online</div>
+				<div class="stat-label">{$t('dashboard.playersOnline')}</div>
 			</div>
 		</div>
 
@@ -195,7 +203,7 @@
 			<div class="stat-icon">[M]</div>
 			<div class="stat-content">
 				<div class="stat-value">{formatBytes(totalServerMemory)}</div>
-				<div class="stat-label">Server Memory</div>
+				<div class="stat-label">{$t('dashboard.serverMemory')}</div>
 			</div>
 		</div>
 
@@ -206,7 +214,7 @@
 					<div class="stat-value">
 						{formatBytes(hostMetrics.disk.freeBytes)}
 					</div>
-					<div class="stat-label">Disk Free</div>
+					<div class="stat-label">{$t('dashboard.diskFree')}</div>
 				</div>
 			</div>
 		{/if}
@@ -214,11 +222,11 @@
 	<!-- Host Metrics -->
 	{#if hostMetrics}
 		<div class="metrics-section">
-			<h2>Host Metrics</h2>
+			<h2>{$t('dashboard.hostMetrics')}</h2>
 			<div class="metrics-grid">
 				<div class="metric-card">
 					<div class="metric-header">
-						<span class="metric-title">System Uptime</span>
+						<span class="metric-title">{$t('dashboard.systemUptime')}</span>
 					</div>
 					<div class="metric-value">
 						{formatUptime(hostMetrics.uptimeSeconds)}
@@ -227,7 +235,7 @@
 
 				<div class="metric-card">
 					<div class="metric-header">
-						<span class="metric-title">Load Average</span>
+						<span class="metric-title">{$t('dashboard.loadAverage')}</span>
 					</div>
 					<div class="metric-value">
 						{hostMetrics.loadAvg
@@ -239,7 +247,7 @@
 
 				<div class="metric-card">
 					<div class="metric-header">
-						<span class="metric-title">Free Memory</span>
+						<span class="metric-title">{$t('dashboard.freeMemory')}</span>
 					</div>
 					<div class="metric-value">
 						{formatBytes(hostMetrics.freeMemBytes)}
@@ -248,7 +256,7 @@
 
 				<div class="metric-card">
 					<div class="metric-header">
-						<span class="metric-title">Disk Usage</span>
+						<span class="metric-title">{$t('dashboard.diskUsage')}</span>
 					</div>
 					<div class="metric-value">
 						{((
@@ -270,13 +278,13 @@
 	<!-- Recent Servers -->
 	<div class="servers-section">
 		<div class="section-header">
-			<h2>Servers</h2>
-			<a href="/servers" class="link-btn">View all -></a>
+			<h2>{$t('dashboard.servers')}</h2>
+			<a href="/servers" class="link-btn">{$t('dashboard.viewAll')} -></a>
 		</div>
 
 		{#if serversError}
 			<div class="error-box">
-				<p>Failed to load servers: {serversError}</p>
+				<p>{$t('dashboard.loadFailed', { error: serversError })}</p>
 			</div>
 		{:else if gameServers && gameServers.length > 0}
 			<div class="server-list">
@@ -298,14 +306,14 @@
 								<span class="port-badge">:{server.port}</span>
 							{/if}
 							{#if server.needsRestart}
-								<span class="restart-badge">Restart required</span>
+								<span class="restart-badge">{$t('dashboard.restartRequired')}</span>
 							{/if}
 						</div>
 					</div>
 						<div class="server-status">
 							{#if server.up}
 								<StatusBadge variant="success" dot />
-								<span class="status-text">Running</span>
+								<span class="status-text">{$t('status.running')}</span>
 								{#if server.playersOnline !== null && server.playersMax !== null}
 									<span class="players-count"
 										>{server.playersOnline}/{server.playersMax}</span
@@ -328,7 +336,7 @@
 								{/if}
 							{:else}
 								<StatusBadge variant="error" dot />
-								<span class="status-text">Stopped</span>
+								<span class="status-text">{$t('status.stopped')}</span>
 							{/if}
 							<div class="server-actions">
 								{#if server.up}
@@ -337,14 +345,14 @@
 										onclick={(event) => handleAction(server.name, 'stop', event)}
 										disabled={actionLoading[server.name]}
 									>
-										Stop
+										{$t('common.stop')}
 									</button>
 									<button
 										class="server-action-btn danger"
 										onclick={(event) => handleAction(server.name, 'kill', event)}
 										disabled={actionLoading[server.name]}
 									>
-										Kill
+										{$t('common.kill')}
 									</button>
 								{:else}
 									<button
@@ -352,7 +360,7 @@
 										onclick={(event) => handleAction(server.name, 'start', event)}
 										disabled={actionLoading[server.name]}
 									>
-										Start
+										{$t('common.start')}
 									</button>
 								{/if}
 							</div>
@@ -363,9 +371,9 @@
 		{:else}
 			<div class="empty-state">
 				<p class="empty-icon">[]</p>
-				<h3>No servers yet</h3>
-				<p>Create your first Minecraft server to get started</p>
-				<a href="/servers/new" class="btn-primary">Create Server</a>
+				<h3>{$t('dashboard.noServers')}</h3>
+				<p>{$t('dashboard.noServersHelp')}</p>
+				<a href="/servers/new" class="btn-primary">{$t('dashboard.createServerShort')}</a>
 			</div>
 		{/if}
 	</div>
@@ -375,8 +383,8 @@
 		<a href="/profiles" class="quick-link-card">
 			<div class="quick-link-icon">[P]</div>
 			<div class="quick-link-content">
-				<div class="quick-link-title">Profiles</div>
-				<div class="quick-link-desc">Download and manage server JARs</div>
+				<div class="quick-link-title">{$t('dashboard.profiles')}</div>
+				<div class="quick-link-desc">{$t('dashboard.profilesDesc')}</div>
 			</div>
 		</a>
 	</div>

@@ -15,7 +15,7 @@ export const actions = {
 		const password = data.get('password')?.toString();
 
 		if (!username || !password) {
-			return fail(400, { error: 'Username and password are required' });
+			return fail(400, { error: 'required' });
 		}
 
 		try {
@@ -29,9 +29,9 @@ export const actions = {
 
 			if (!response.ok) {
 				if (response.status === 401) {
-					return fail(401, { error: 'Invalid username or password' });
+					return fail(401, { error: 'invalid' });
 				}
-				return fail(response.status, { error: 'Login failed. Please try again.' });
+				return fail(response.status, { error: 'failed' });
 			}
 
 			const result = await response.json();
@@ -55,7 +55,7 @@ export const actions = {
 				throw err;
 			}
 			console.error('Login error:', err);
-			return fail(500, { error: 'An unexpected error occurred' });
+			return fail(500, { error: 'unexpected' });
 		}
 	}
 } satisfies Actions;
